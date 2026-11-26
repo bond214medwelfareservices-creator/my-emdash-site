@@ -99,6 +99,20 @@ const steps = [
 ---
 
 <Base title={pageTitle} description={pageDescription}>
+	<div class="band hero">
+		<div class="frame">
+			<img
+				class="hero__image"
+				src="/images/top-hero.webp"
+				width="1536"
+				height="1024"
+				fetchpriority="high"
+				decoding="async"
+				alt="訪問看護ステーションりんく　児童精神の訪問看護。お子さんの「こころ」の育ちや日々の暮らしに寄り添い、ご家族と一緒に歩みます。看護師がご自宅でお子さんとお母さんに話しかけているイラスト。お子さんの気持ちに寄り添う、ご家族をサポート、その子らしい暮らしを支える。"
+			/>
+		</div>
+	</div>
+
 	<header class="band intro">
 		<div class="frame">
 			<p class="eyebrow">児童精神訪問看護</p>
@@ -248,6 +262,30 @@ const steps = [
 </Base>
 
 <style>
+	.hero {
+		padding-block: var(--spacing-6);
+	}
+
+	.hero__image {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-radius: var(--radius-xl);
+		box-shadow:
+			0 0 0 1px var(--color-border),
+			var(--shadow-card);
+	}
+
+	@media (max-width: 720px) {
+		.hero {
+			padding-block: var(--spacing-4);
+		}
+
+		.hero__image {
+			border-radius: var(--radius-lg);
+		}
+	}
+
 	/* Japanese lines are roughly twice as wide per character as "0", so the
 	   default 22ch measure would wrap the title after ~11 characters. */
 	.home-title {
