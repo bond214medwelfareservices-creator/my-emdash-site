@@ -8,187 +8,382 @@ import Base from "../layouts/Base.astro";
 import PostCard from "../components/PostCard.astro";
 import { resolveBlogSiteIdentity } from "../utils/site-identity";
 
-// Limit to what we render (1 featured + 6 grid). The DB does the slicing
-// instead of fetching every post and discarding the tail in JS.
-const POSTS_PER_PAGE = 7;
+// Latest posts are shown as "お知らせ" at the bottom of the page.
+const NEWS_LIMIT = 3;
 
 const [{ entries: posts, cacheHint }, settings] = await Promise.all([
 	getEmDashCollection("posts", {
 		orderBy: { published_at: "desc" },
-		limit: POSTS_PER_PAGE + 1, // +1 to detect "view all" need
+		limit: NEWS_LIMIT + 1, // +1 to detect "view all" need
 	}),
 	getSiteSettings(),
 ]);
-const { siteTitle, siteTagline } = resolveBlogSiteIdentity(settings);
+const { siteTitle } = resolveBlogSiteIdentity(settings);
 
 if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
 
-// Trim the lookahead post used to detect overflow
-const visiblePosts = posts.slice(0, POSTS_PER_PAGE);
-const hasMorePosts = posts.length > POSTS_PER_PAGE;
+const newsPosts = posts.slice(0, NEWS_LIMIT);
+const hasMorePosts = posts.length > NEWS_LIMIT;
 
-// Find the first post with a featured image for the hero
-const featuredPost = visiblePosts.find((p) => p.data.featured_image);
-const featuredIndex = featuredPost ? visiblePosts.indexOf(featuredPost) : -1;
-
-// Get remaining posts (exclude featured if found, limit to 6 for grid)
-const gridPosts = visiblePosts
-	.filter((_, i) => i !== featuredIndex)
-	.slice(0, 6);
-
-// Single batched query for tags across the featured post + grid posts.
-// Avoids the N+1 pattern of calling getEntryTerms() per entry.
-// Bylines are already hydrated on entry.data.bylines by getEmDashCollection.
-const tagEntryIds = [
-	...(featuredPost ? [featuredPost.data.id] : []),
-	...gridPosts.map((p) => p.data.id),
-];
-const tagsByEntry = await getTermsForEntries("posts", tagEntryIds, "tag");
-
-const featuredTags = featuredPost
-	? (tagsByEntry.get(featuredPost.data.id) ?? []).map((t) => ({
-			slug: t.slug,
-			label: t.label,
-		}))
-	: [];
-
-const gridPostsWithTags = gridPosts.map((post) => ({
+const tagsByEntry = await getTermsForEntries(
+	"posts",
+	newsPosts.map((p) => p.data.id),
+	"tag",
+);
+const newsWithTags = newsPosts.map((post) => ({
 	post,
 	tags: (tagsByEntry.get(post.data.id) ?? []).map((t) => ({
 		slug: t.slug,
 		label: t.label,
 	})),
 }));
+
+const pageTitle = `児童精神訪問看護 | ${siteTitle}`;
+const pageDescription =
+	"こころの不調や発達の特性がある子どもとご家族のもとへ、精神科の経験をもつ看護師がご自宅にうかがいます。";
+
+const concerns = [
+	"学校や園に行きづらい日が続いている",
+	"気持ちの波が大きく、家族も対応に迷う",
+	"発達の特性（ASD・ADHD など）との付き合い方を知りたい",
+	"昼夜逆転など、生活リズムが崩れている",
+	"お薬をきちんと続けられるか心配",
+	"退院後の家での生活が不安",
+];
+
+const services = [
+	{
+		title: "生活リズムと日常生活の支援",
+		body: "睡眠・食事・身のまわりのことなど、その子のペースに合わせて一緒に整えていきます。",
+	},
+	{
+		title: "気持ちの整理とコミュニケーション",
+		body: "話を聴き、気持ちを言葉にする手伝いをします。人との関わり方の練習にも寄り添います。",
+	},
+	{
+		title: "症状の観察と服薬の支援",
+		body: "体調やこころの変化を見守り、お薬の飲み方や副作用の心配を主治医と共有します。",
+	},
+	{
+		title: "ご家族へのサポート",
+		body: "子育ての悩みや関わり方の相談をお受けします。ご家族が抱え込まないことも大切な支援です。",
+	},
+	{
+		title: "学校・医療・福祉との連携",
+		body: "主治医、学校、相談支援専門員などと情報を共有し、子どもを囲むチームをつなぎます。",
+	},
+	{
+		title: "危機時の相談と再発予防",
+		body: "調子を崩すサインを一緒に把握し、早めに対応できるよう備えます。",
+	},
+];
+
+const steps = [
+	{
+		title: "ご相談",
+		body: "ご家族、主治医、学校、相談支援専門員など、どなたからのご相談もお受けします。",
+	},
+	{
+		title: "主治医の指示書",
+		body: "訪問看護の利用には、主治医が発行する「精神科訪問看護指示書」が必要です。",
+	},
+	{
+		title: "面談・契約",
+		body: "ご自宅でお子さんとご家族にお会いし、困りごとや目標をうかがって看護計画を立てます。",
+	},
+	{
+		title: "訪問開始",
+		body: "決まった曜日・時間にうかがいます。状況に合わせて内容や頻度を見直していきます。",
+	},
+];
 ---
 
-<Base title={siteTitle} description={siteTagline}>
+<Base title={pageTitle} description={pageDescription}>
 	<header class="band intro">
-		<div class="frame home-intro">
-			<div>
-				<p class="eyebrow">Blog</p>
-				<h1 class="intro__title">{siteTitle}</h1>
-				{siteTagline && <p class="intro__subtitle">{siteTagline}</p>}
+		<div class="frame">
+			<p class="eyebrow">児童精神訪問看護</p>
+			<h1 class="intro__title home-title">
+				子どもとご家族の毎日に、<br />看護師がうかがいます。
+			</h1>
+			<p class="intro__lead">
+				こころの不調や発達の特性がある子どもとご家族のもとへ、精神科の経験をもつ看護師がご自宅に訪問します。慣れた場所で、その子のペースを大切にしながら、暮らしと気持ちを一緒に整えていきます。
+			</p>
+			<div class="home-actions">
+				<a href="#contact" class="btn">ご相談・お問い合わせ</a>
+				<a href="#flow" class="btn btn--ghost">ご利用の流れ</a>
 			</div>
-			<a
-				href="/rss.xml"
-				type="application/rss+xml"
-				class="btn btn--ghost btn--sm home-intro__rss"
-			>
-				<svg
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.75"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d="M4 11a9 9 0 0 1 9 9"></path>
-					<path d="M4 4a16 16 0 0 1 16 16"></path>
-					<circle cx="5" cy="19" r="1"></circle>
-				</svg>
-				RSS feed
-			</a>
 		</div>
 	</header>
 
+	<section class="band section" aria-labelledby="concerns">
+		<div class="frame">
+			<div class="section-head">
+				<h2 id="concerns" class="section-head__title">
+					こんなことでお困りではありませんか
+				</h2>
+			</div>
+			<ul class="concern-list">
+				{concerns.map((text) => <li>{text}</li>)}
+			</ul>
+			<p class="note">
+				小学生から高校生くらいまでのお子さんと、そのご家族を主な対象としています。診断の有無や年齢についても、まずはお気軽にご相談ください。
+			</p>
+		</div>
+	</section>
+
+	<section class="band section" aria-labelledby="services">
+		<div class="frame">
+			<div class="section-head">
+				<h2 id="services" class="section-head__title">訪問看護でできること</h2>
+			</div>
+			<ul class="post-grid info-grid">
+				{
+					services.map((s) => (
+						<li class="info-card">
+							<h3 class="info-card__title">{s.title}</h3>
+							<p class="info-card__body">{s.body}</p>
+						</li>
+					))
+				}
+			</ul>
+		</div>
+	</section>
+
+	<section class="band section" aria-labelledby="flow-title" id="flow">
+		<div class="frame">
+			<div class="section-head">
+				<h2 id="flow-title" class="section-head__title">ご利用の流れ</h2>
+			</div>
+			<ol class="steps">
+				{
+					steps.map((s, i) => (
+						<li class="step">
+							<span class="eyebrow">Step {i + 1}</span>
+							<h3 class="info-card__title">{s.title}</h3>
+							<p class="info-card__body">{s.body}</p>
+						</li>
+					))
+				}
+			</ol>
+		</div>
+	</section>
+
+	<section class="band section" aria-labelledby="cost">
+		<div class="frame cost">
+			<h2 id="cost" class="section-head__title">費用について</h2>
+			<p>
+				精神科訪問看護は医療保険が適用されます。自立支援医療（精神通院医療）や、お住まいの自治体の子ども医療費助成の対象になる場合は、自己負担が軽くなることがあります。くわしくはお問い合わせください。
+			</p>
+		</div>
+	</section>
+
+	<section class="band section" aria-labelledby="contact-title" id="contact">
+		<div class="frame">
+			<div class="contact-card">
+				<p class="eyebrow">Contact</p>
+				<h2 id="contact-title" class="contact-card__title">
+					まずは、お話を聞かせてください。
+				</h2>
+				<p class="contact-card__body">
+					ご利用前のご相談や見学のご希望など、どんなことでもお気軽にご連絡ください。
+				</p>
+				<dl class="contact-list">
+					<div>
+						<dt>電話</dt>
+						<dd>【電話番号を記入】</dd>
+					</div>
+					<div>
+						<dt>受付時間</dt>
+						<dd>【受付時間を記入】</dd>
+					</div>
+					<div>
+						<dt>訪問エリア</dt>
+						<dd>【訪問エリアを記入】</dd>
+					</div>
+				</dl>
+			</div>
+		</div>
+	</section>
+
 	{
-		posts.length === 0 ? (
-			<section class="band section">
+		newsWithTags.length > 0 && (
+			<section class="band section" aria-labelledby="news">
 				<div class="frame">
-					<div class="empty-state">
-						<h2 class="empty-state__title">No posts yet</h2>
-						<p class="empty-state__text">
-							Create your first post in the admin panel.
-						</p>
-						<div class="empty-state__actions">
-							<a href="/_emdash/admin/content/posts/new" class="btn">
-								Create a post
+					<div class="section-head">
+						<h2 id="news" class="section-head__title">
+							お知らせ
+						</h2>
+						{hasMorePosts && (
+							<a href="/posts" class="arrow-link">
+								すべて見る
+								<svg
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.75"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<path d="M5 12h14" />
+									<path d="m12 5 7 7-7 7" />
+								</svg>
 							</a>
-						</div>
+						)}
+					</div>
+					<div class="post-grid">
+						{newsWithTags.map(({ post, tags }) => (
+							<PostCard
+								post={post}
+								tags={tags}
+								variant="card"
+								headingLevel={3}
+							/>
+						))}
 					</div>
 				</div>
 			</section>
-		) : (
-			<>
-				{featuredPost && (
-					<section class="band section">
-						<div class="frame">
-							<PostCard
-								post={featuredPost}
-								tags={featuredTags}
-								variant="feature"
-								headingLevel={2}
-								priority
-							/>
-						</div>
-					</section>
-				)}
-
-				{gridPostsWithTags.length > 0 && (
-					<section class="band section" aria-labelledby="latest-posts">
-						<div class="frame">
-							<div class="section-head">
-								<h2 id="latest-posts" class="section-head__title">
-									Latest posts
-								</h2>
-								{hasMorePosts && (
-									<a href="/posts" class="arrow-link">
-										View all<span class="sr-only"> posts</span>
-										<svg
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="1.75"
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											aria-hidden="true"
-										>
-											<path d="M5 12h14" />
-											<path d="m12 5 7 7-7 7" />
-										</svg>
-									</a>
-								)}
-							</div>
-							<div class="post-grid">
-								{gridPostsWithTags.map(({ post, tags }) => (
-									<PostCard
-										post={post}
-										tags={tags}
-										variant="card"
-										headingLevel={3}
-									/>
-								))}
-							</div>
-						</div>
-					</section>
-				)}
-			</>
 		)
 	}
 </Base>
 
 <style>
-	.home-intro {
+	/* Japanese lines are roughly twice as wide per character as "0", so the
+	   default 22ch measure would wrap the title after ~11 characters. */
+	.home-title {
+		max-width: none;
+		font-size: clamp(1.625rem, 1.1rem + 2.5vw, 3rem);
+		line-height: 1.3;
+	}
+
+	.home-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--spacing-3);
+		margin-top: var(--spacing-8);
+	}
+
+	.concern-list {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		align-items: end;
-		gap: var(--spacing-6) var(--spacing-8);
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+		gap: var(--spacing-3);
+		list-style: none;
+		padding: 0;
 	}
 
-	/* Lifts the pill from the line box's bottom onto the last line's baseline */
-	.home-intro__rss {
-		margin-block-end: var(--spacing-2);
+	.concern-list li {
+		display: flex;
+		gap: var(--spacing-3);
+		align-items: baseline;
+		padding: var(--spacing-4) var(--spacing-5);
+		border-radius: var(--radius-lg);
+		background: var(--color-surface);
+		box-shadow:
+			inset 0 0 0 1px var(--color-border),
+			var(--shadow-sm);
+		line-height: 1.7;
 	}
 
-	@media (max-width: 720px) {
-		.home-intro {
-			grid-template-columns: minmax(0, 1fr);
-		}
+	.concern-list li::before {
+		content: "";
+		flex-shrink: 0;
+		width: 8px;
+		height: 8px;
+		border-radius: var(--radius-full);
+		background: var(--color-brand);
+		translate: 0 -2px;
+	}
 
-		.home-intro__rss {
-			justify-self: start;
-			margin-block-end: 0;
-		}
+	.note {
+		margin-top: var(--spacing-6);
+		max-width: 60ch;
+		color: var(--color-text-secondary);
+		line-height: 1.8;
+	}
+
+	.info-grid {
+		list-style: none;
+		padding: 0;
+	}
+
+	.info-card,
+	.step {
+		padding: var(--spacing-6);
+		border-radius: var(--radius-xl);
+		background: var(--color-surface);
+		box-shadow:
+			inset 0 0 0 1px var(--color-border),
+			var(--shadow-card);
+	}
+
+	.info-card__title {
+		font-size: var(--font-size-lg);
+		line-height: 1.5;
+	}
+
+	.info-card__body {
+		margin-top: var(--spacing-2);
+		color: var(--color-text-secondary);
+		line-height: 1.8;
+	}
+
+	.steps {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+		gap: var(--spacing-4);
+		list-style: none;
+		padding: 0;
+	}
+
+	.step .info-card__title {
+		margin-top: var(--spacing-2);
+	}
+
+	.cost p {
+		margin-top: var(--spacing-4);
+		max-width: 60ch;
+		color: var(--color-text-secondary);
+		line-height: 1.8;
+	}
+
+	.contact-card {
+		padding: clamp(1.5rem, 1rem + 2.5vw, 3rem);
+		border-radius: var(--radius-xl);
+		background: var(--color-surface);
+		box-shadow:
+			inset 0 0 0 1px var(--color-border),
+			var(--shadow-card);
+	}
+
+	.contact-card__title {
+		margin-top: var(--spacing-3);
+		font-size: var(--font-size-2xl);
+		line-height: 1.4;
+	}
+
+	.contact-card__body {
+		margin-top: var(--spacing-3);
+		color: var(--color-text-secondary);
+		line-height: 1.8;
+	}
+
+	.contact-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+		gap: var(--spacing-4);
+		margin-top: var(--spacing-6);
+		padding-top: var(--spacing-6);
+		border-top: 1px solid var(--color-border);
+	}
+
+	.contact-list dt {
+		font-size: var(--font-size-sm);
+		color: var(--color-muted);
+	}
+
+	.contact-list dd {
+		margin: var(--spacing-1) 0 0;
+		font-size: var(--font-size-lg);
+		font-weight: 600;
 	}
 </style>

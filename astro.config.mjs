@@ -36,7 +36,7 @@ export default defineConfig({
 			name: "Inter",
 			cssVariable: "--font-body",
 			weights: [400, 500, 600, 700],
-			fallbacks: ["sans-serif"],
+			fallbacks: ["Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Meiryo", "sans-serif"],
 		},
 		{
 			provider: fontProviders.google(),

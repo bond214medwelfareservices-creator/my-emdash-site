@@ -31,4 +31,8 @@
 */
 
 :root {
+	/* Calm green for a home-visit nursing service */
+	--color-brand: light-dark(#2f6f5e, #7cc6ae);
+	--color-brand-hover: light-dark(#255a4c, #9fd8c4);
+	--color-on-brand: light-dark(#ffffff, #0a0a0a);
 }
