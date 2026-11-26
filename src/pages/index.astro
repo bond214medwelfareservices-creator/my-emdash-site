@@ -1,24 +1,15 @@
 ---
-import {
-	getEmDashCollection,
-	getTermsForEntries,
-	getSiteSettings,
-} from "emdash";
+import { getEmDashCollection, getTermsForEntries } from "emdash";
 import Base from "../layouts/Base.astro";
 import PostCard from "../components/PostCard.astro";
-import { resolveBlogSiteIdentity } from "../utils/site-identity";
 
 // Latest posts are shown as "お知らせ" at the bottom of the page.
 const NEWS_LIMIT = 3;
 
-const [{ entries: posts, cacheHint }, settings] = await Promise.all([
-	getEmDashCollection("posts", {
-		orderBy: { published_at: "desc" },
-		limit: NEWS_LIMIT + 1, // +1 to detect "view all" need
-	}),
-	getSiteSettings(),
-]);
-const { siteTitle } = resolveBlogSiteIdentity(settings);
+const { entries: posts, cacheHint } = await getEmDashCollection("posts", {
+	orderBy: { published_at: "desc" },
+	limit: NEWS_LIMIT + 1, // +1 to detect "view all" need
+});
 
 if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
 
@@ -38,7 +29,11 @@ const newsWithTags = newsPosts.map((post) => ({
 	})),
 }));
 
-const pageTitle = `児童精神訪問看護 | ${siteTitle}`;
+const STATION_NAME = "訪問看護ステーション りんく";
+const OPERATOR_NAME = "合同会社Bond";
+
+// Base appends the site title (set in the admin) after this.
+const pageTitle = "児童精神訪問看護";
 const pageDescription =
 	"こころの不調や発達の特性がある子どもとご家族のもとへ、精神科の経験をもつ看護師がご自宅にうかがいます。";
 
@@ -108,7 +103,7 @@ const steps = [
 				height="1024"
 				fetchpriority="high"
 				decoding="async"
-				alt="訪問看護ステーションりんく　児童精神の訪問看護。お子さんの「こころ」の育ちや日々の暮らしに寄り添い、ご家族と一緒に歩みます。看護師がご自宅でお子さんとお母さんに話しかけているイラスト。お子さんの気持ちに寄り添う、ご家族をサポート、その子らしい暮らしを支える。"
+				alt="訪問看護ステーション りんく　児童精神の訪問看護。お子さんの「こころ」の育ちや日々の暮らしに寄り添い、ご家族と一緒に歩みます。看護師がご自宅でお子さんとお母さんに話しかけているイラスト。お子さんの気持ちに寄り添う、ご家族をサポート、その子らしい暮らしを支える。"
 			/>
 		</div>
 	</div>
@@ -202,6 +197,14 @@ const steps = [
 					ご利用前のご相談や見学のご希望など、どんなことでもお気軽にご連絡ください。
 				</p>
 				<dl class="contact-list">
+					<div>
+						<dt>事業所名</dt>
+						<dd>{STATION_NAME}</dd>
+					</div>
+					<div>
+						<dt>運営法人</dt>
+						<dd>{OPERATOR_NAME}</dd>
+					</div>
 					<div>
 						<dt>電話</dt>
 						<dd>【電話番号を記入】</dd>
@@ -407,7 +410,7 @@ const steps = [
 
 	.contact-list {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 		gap: var(--spacing-4);
 		margin-top: var(--spacing-6);
 		padding-top: var(--spacing-6);
