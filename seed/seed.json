@@ -86,6 +86,10 @@
 				{
 					"slug": "notes",
 					"label": "Notes"
+				},
+				{
+					"slug": "column",
+					"label": "コラム"
 				}
 			]
 		},

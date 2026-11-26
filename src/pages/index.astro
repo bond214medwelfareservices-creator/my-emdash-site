@@ -6,12 +6,33 @@ import PostCard from "../components/PostCard.astro";
 // Latest posts are shown as "お知らせ" at the bottom of the page.
 const NEWS_LIMIT = 3;
 
-const { entries: posts, cacheHint } = await getEmDashCollection("posts", {
-	orderBy: { published_at: "desc" },
-	limit: NEWS_LIMIT + 1, // +1 to detect "view all" need
-});
+// Posts in this category are pinned to the home page as "コラム".
+// Create the category in the admin and assign it to the summary articles.
+const COLUMN_CATEGORY = "column";
+const COLUMN_LIMIT = 3;
 
-if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+const [
+	{ entries: posts, cacheHint },
+	{ entries: columnEntries, cacheHint: columnCacheHint },
+] = await Promise.all([
+	getEmDashCollection("posts", {
+		orderBy: { published_at: "desc" },
+		limit: NEWS_LIMIT + 1, // +1 to detect "view all" need
+	}),
+	getEmDashCollection("posts", {
+		where: { category: COLUMN_CATEGORY },
+		orderBy: { published_at: "desc" },
+		limit: COLUMN_LIMIT + 1,
+	}),
+]);
+
+if (Astro.cache?.enabled) {
+	Astro.cache.set(cacheHint);
+	Astro.cache.set(columnCacheHint);
+}
+
+const columnPosts = columnEntries.slice(0, COLUMN_LIMIT);
+const hasMoreColumns = columnEntries.length > COLUMN_LIMIT;
 
 const newsPosts = posts.slice(0, NEWS_LIMIT);
 const hasMorePosts = posts.length > NEWS_LIMIT;
@@ -185,6 +206,48 @@ const steps = [
 			</p>
 		</div>
 	</section>
+
+	{
+		columnPosts.length > 0 && (
+			<section class="band section" aria-labelledby="columns">
+				<div class="frame">
+					<div class="section-head">
+						<div>
+							<p class="eyebrow">Column</p>
+							<h2 id="columns" class="section-head__title column-title">
+								コラム・まとめ記事
+							</h2>
+						</div>
+						{hasMoreColumns && (
+							<a href={`/category/${COLUMN_CATEGORY}`} class="arrow-link">
+								コラム一覧
+								<svg
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.75"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<path d="M5 12h14" />
+									<path d="m12 5 7 7-7 7" />
+								</svg>
+							</a>
+						)}
+					</div>
+					<p class="note column-lead">
+						お子さんのこころや暮らしについて、よくあるご相談をテーマごとにまとめています。
+					</p>
+					<div class="post-grid column-grid">
+						{columnPosts.map((post) => (
+							<PostCard post={post} variant="card" headingLevel={3} />
+						))}
+					</div>
+				</div>
+			</section>
+		)
+	}
 
 	<section class="band section" aria-labelledby="contact-title" id="contact">
 		<div class="frame">
@@ -385,6 +448,15 @@ const steps = [
 		max-width: 60ch;
 		color: var(--color-text-secondary);
 		line-height: 1.8;
+	}
+
+	.column-title {
+		margin-top: var(--spacing-2);
+	}
+
+	.column-lead {
+		margin-top: 0;
+		margin-bottom: var(--spacing-6);
 	}
 
 	.contact-card {
